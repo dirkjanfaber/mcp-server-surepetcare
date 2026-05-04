@@ -1,0 +1,57 @@
+# mcp-server-surepetcare
+
+MCP (Model Context Protocol) server for the [SurePetcare](https://www.surepetcare.com) cloud API. Exposes pet location monitoring and SureFlap lock control as MCP tools.
+
+> **Disclaimer:** This project is not affiliated with, endorsed by, or in any way associated with Sure Petcare Ltd. It is an independent, community-developed integration created by happy users of their hardware and software. SurePetcare, SureFlap, and SureFeed are trademarks of Sure Petcare Ltd. Use of this package is at your own risk. The underlying API is unofficial and reverse-engineered by the community - it may change or break without notice.
+
+## Tools
+
+| Tool | Description |
+|---|---|
+| `list_pets` | List all pets and their current locations (inside/outside) |
+| `list_devices` | List all SurePetcare devices (cat flaps, feeders, etc.) |
+| `set_lock_state` | Set the lock state of a SureFlap cat flap |
+
+### Lock state values
+
+| Value | Meaning |
+|---|---|
+| `0` | Unlocked (both directions) |
+| `1` | Locked in (entry only) |
+| `2` | Locked out (exit only) |
+| `3` | Locked (both directions) |
+
+## Configuration
+
+Set the following environment variables before starting the server:
+
+```bash
+export SUREPETCARE_EMAIL="your@email.com"
+export SUREPETCARE_PASSWORD="yourpassword"
+export SUREPETCARE_DEVICE_ID="stable-uuid"   # optional, auto-generated if omitted
+```
+
+## Usage with Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "surepetcare": {
+      "command": "npx",
+      "args": ["mcp-server-surepetcare"],
+      "env": {
+        "SUREPETCARE_EMAIL": "your@email.com",
+        "SUREPETCARE_PASSWORD": "yourpassword"
+      }
+    }
+  }
+}
+```
+
+## References
+
+- Reverse-engineered API (PHP): https://github.com/alextoft/sureflap
+- Python client (surepy): https://github.com/benleb/surepy
+- Local MQTT alternative (PetHubLocal): https://github.com/PetHubLocal/pethublocal
