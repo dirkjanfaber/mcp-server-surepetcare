@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { randomUUID } from 'crypto';
 import { Server } from '@modelcontextprotocol/sdk/server';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types';
+} from '@modelcontextprotocol/sdk/types.js';
 import { SurepetcareAPI } from './lib/surepetcare-api.js';
 import { LockState } from './types/surepetcare.js';
 
