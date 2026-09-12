@@ -9,8 +9,10 @@ MCP (Model Context Protocol) server for the [SurePetcare](https://www.surepetcar
 | Tool | Description |
 |---|---|
 | `list_pets` | List all pets and their current locations (inside/outside) |
-| `list_devices` | List all SurePetcare devices (cat flaps, feeders, etc.) |
+| `get_pet_details` | Get raw pet data including microchip tag information |
+| `list_devices` | List all SurePetcare devices, including live lock state and curfew schedule |
 | `set_lock_state` | Set the lock state of a SureFlap cat flap |
+| `rename_device` | Rename a device, re-asserting any explicit lock override so the rename can't silently unlock it |
 
 ### Lock state values
 

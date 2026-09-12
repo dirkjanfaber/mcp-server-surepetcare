@@ -7,7 +7,23 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { SurepetcareAPI } from './lib/surepetcare-api.js';
-import { LockState } from './types/surepetcare.js';
+import { DeviceLockingMode, LockState } from './types/surepetcare.js';
+
+const LOCKING_MODE_LABELS: Record<number, string> = {
+  0: 'unlocked',
+  1: 'locked in',
+  2: 'locked out',
+  3: 'locked both ways',
+  4: 'curfew scheduled',
+  [-1]: 'curfew locked',
+  [-2]: 'curfew unlocked',
+  [-3]: 'curfew unknown',
+};
+
+function lockingModeLabel(mode: DeviceLockingMode | undefined): string | undefined {
+  if (mode === undefined) return undefined;
+  return LOCKING_MODE_LABELS[mode] ?? `mode ${mode}`;
+}
 
 const email = process.env.SUREPETCARE_EMAIL ?? '';
 const password = process.env.SUREPETCARE_PASSWORD ?? '';
@@ -30,6 +46,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'list_pets',
       description: 'List all pets and their current locations (inside or outside)',
+      inputSchema: { type: 'object', properties: {}, required: [] },
+    },
+    {
+      name: 'get_pet_details',
+      description: 'Get raw pet data including microchip tag information',
       inputSchema: { type: 'object', properties: {}, required: [] },
     },
     {
@@ -56,6 +77,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['deviceId', 'lockState'],
       },
     },
+    {
+      name: 'rename_device',
+      description: "Rename a SurePetcare device (e.g. a cat flap). Automatically re-asserts any explicit lock override (0-3) that was active beforehand, since the underlying rename endpoint has been observed to silently reset it to unlocked otherwise.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          deviceId: {
+            type: 'string',
+            description: 'Numeric device ID (from list_devices)',
+          },
+          name: {
+            type: 'string',
+            description: 'New name for the device',
+          },
+        },
+        required: ['deviceId', 'name'],
+      },
+    },
   ],
 }));
 
@@ -78,6 +117,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    case 'get_pet_details': {
+      const raw = await api.getPetsRaw();
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(raw, null, 2),
+        }],
+      };
+    }
+
     case 'list_devices': {
       const devices = await api.getDevices();
       return {
@@ -88,6 +137,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             name: d.name,
             serial_number: d.serial_number,
             product_id: d.product_id,
+            lockingMode: d.status?.locking?.mode,
+            lockingModeLabel: lockingModeLabel(d.status?.locking?.mode),
+            curfew: d.control?.curfew,
           })), null, 2),
         }],
       };
@@ -104,6 +156,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [{
           type: 'text',
           text: `Lock state of device ${deviceId} set to ${lockState}`,
+        }],
+      };
+    }
+
+    case 'rename_device': {
+      const deviceId = args?.deviceId as string;
+      const name = args?.name as string;
+      if (!deviceId || !name) {
+        throw new Error('deviceId and name are required');
+      }
+      await api.renameDevice(deviceId, name);
+      return {
+        content: [{
+          type: 'text',
+          text: `Device ${deviceId} renamed to "${name}"`,
         }],
       };
     }

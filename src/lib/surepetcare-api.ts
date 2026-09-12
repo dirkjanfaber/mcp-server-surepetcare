@@ -59,10 +59,22 @@ export class SurepetcareAPI implements SurepetcareBackend {
     });
   }
 
+  async getPetsRaw(): Promise<unknown> {
+    await this.authenticate();
+    return this.withRetry(async () => {
+      const response = await this.http.get('/pet', {
+        params: { 'with[]': ['position', 'tag'] },
+        headers: this.authHeaders(),
+      });
+      return response.data.data;
+    });
+  }
+
   async getDevices(): Promise<Device[]> {
     await this.authenticate();
     return this.withRetry(async () => {
       const response = await this.http.get('/device', {
+        params: { 'with[]': 'control' },
         headers: this.authHeaders(),
       });
       return response.data.data as Device[];
@@ -76,5 +88,30 @@ export class SurepetcareAPI implements SurepetcareBackend {
         headers: this.authHeaders(),
       });
     });
+  }
+
+  async renameDevice(deviceId: string, name: string): Promise<void> {
+    await this.authenticate();
+
+    // PUT /device/{id} (unlike /device/{id}/control) has been observed to
+    // reset the device's lock override to unlocked as a side effect of the
+    // rename, even though locking isn't part of this request body. Capture
+    // whatever explicit override (0-3) was active beforehand and re-assert
+    // it once the rename completes, so a curfew-driven lock doesn't
+    // silently get dropped by an unrelated rename. Modes outside 0-3 mean
+    // the flap is governed by the app's own curfew schedule rather than an
+    // explicit override, so there's nothing to re-assert.
+    const devices = await this.getDevices();
+    const priorLockState = devices.find(d => String(d.id) === deviceId)?.status?.locking?.mode;
+
+    await this.withRetry(async () => {
+      await this.http.put(`/device/${deviceId}`, { name }, {
+        headers: this.authHeaders(),
+      });
+    });
+
+    if (priorLockState !== undefined && priorLockState >= 0 && priorLockState <= 3) {
+      await this.setLockState(deviceId, priorLockState as LockState);
+    }
   }
 }
