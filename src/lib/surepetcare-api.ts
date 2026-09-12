@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Device, LockState, Pet, SurepetcareBackend, SurepetcareCredentials } from '../types/surepetcare.js';
+import { Device, LedMode, LockState, Pet, SurepetcareBackend, SurepetcareCredentials } from '../types/surepetcare.js';
 
 const BASE_URL = 'https://app.api.surehub.io/api';
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
@@ -113,5 +113,26 @@ export class SurepetcareAPI implements SurepetcareBackend {
     if (priorLockState !== undefined && priorLockState >= 0 && priorLockState <= 3) {
       await this.setLockState(deviceId, priorLockState as LockState);
     }
+  }
+
+  async setPetLocation(petId: string, where: 1 | 2): Promise<void> {
+    await this.authenticate();
+    return this.withRetry(async () => {
+      // "Y-m-d H:i", matching the reference implementation this endpoint
+      // was reverse-engineered from (alextoft/sureflap's setPetLocation.php).
+      const since = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      await this.http.post(`/pet/${petId}/position`, { where, since }, {
+        headers: this.authHeaders(),
+      });
+    });
+  }
+
+  async setLedMode(deviceId: string, mode: LedMode): Promise<void> {
+    await this.authenticate();
+    return this.withRetry(async () => {
+      await this.http.put(`/device/${deviceId}/control`, { led_mode: mode }, {
+        headers: this.authHeaders(),
+      });
+    });
   }
 }

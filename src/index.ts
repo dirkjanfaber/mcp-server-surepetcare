@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { SurepetcareAPI } from './lib/surepetcare-api.js';
-import { DeviceLockingMode, LockState } from './types/surepetcare.js';
+import { DeviceLockingMode, LedMode, LockState } from './types/surepetcare.js';
 
 const LOCKING_MODE_LABELS: Record<number, string> = {
   0: 'unlocked',
@@ -95,6 +95,44 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['deviceId', 'name'],
       },
     },
+    {
+      name: 'set_pet_location',
+      description: "Manually mark a pet as inside or outside. Useful when a pet was let through a door other than the flap, so its chip was never read and the app's tracked location is stale.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          petId: {
+            type: 'string',
+            description: 'Numeric pet ID (from list_pets)',
+          },
+          location: {
+            type: 'string',
+            enum: ['inside', 'outside'],
+            description: 'Where the pet actually is',
+          },
+        },
+        required: ['petId', 'location'],
+      },
+    },
+    {
+      name: 'set_led_mode',
+      description: "Set the hub's LED ring brightness",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          deviceId: {
+            type: 'string',
+            description: 'Numeric device ID of the hub (from list_devices)',
+          },
+          mode: {
+            type: 'number',
+            enum: [0, 1, 4],
+            description: 'LED mode: 0 = off, 1 = bright, 4 = dimmed',
+          },
+        },
+        required: ['deviceId', 'mode'],
+      },
+    },
   ],
 }));
 
@@ -171,6 +209,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [{
           type: 'text',
           text: `Device ${deviceId} renamed to "${name}"`,
+        }],
+      };
+    }
+
+    case 'set_pet_location': {
+      const petId = args?.petId as string;
+      const location = args?.location as string;
+      if (!petId || (location !== 'inside' && location !== 'outside')) {
+        throw new Error('petId and location ("inside" or "outside") are required');
+      }
+      await api.setPetLocation(petId, location === 'inside' ? 1 : 2);
+      return {
+        content: [{
+          type: 'text',
+          text: `Pet ${petId} marked as ${location}`,
+        }],
+      };
+    }
+
+    case 'set_led_mode': {
+      const deviceId = args?.deviceId as string;
+      const mode = args?.mode as LedMode;
+      if (!deviceId || mode === undefined) {
+        throw new Error('deviceId and mode are required');
+      }
+      await api.setLedMode(deviceId, mode);
+      return {
+        content: [{
+          type: 'text',
+          text: `LED mode of device ${deviceId} set to ${mode}`,
         }],
       };
     }

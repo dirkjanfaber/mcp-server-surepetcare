@@ -1,5 +1,8 @@
 export type LockState = 0 | 1 | 2 | 3;
 
+// Hub LED ring brightness: 0 = off, 1 = bright, 4 = dimmed.
+export type LedMode = 0 | 1 | 4;
+
 // As reported by device.status.locking.mode: the settable LockState values,
 // plus 4 (locking deferred to the curfew schedule) and the read-only
 // states the device reports while curfew is in effect.
@@ -49,4 +52,6 @@ export interface SurepetcareBackend {
   getDevices(): Promise<Device[]>;
   setLockState(deviceId: string, state: LockState): Promise<void>;
   renameDevice(deviceId: string, name: string): Promise<void>;
+  setPetLocation(petId: string, where: 1 | 2): Promise<void>;
+  setLedMode(deviceId: string, mode: LedMode): Promise<void>;
 }

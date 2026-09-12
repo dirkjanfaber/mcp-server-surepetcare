@@ -221,3 +221,69 @@ describe('setLockState', () => {
     expect(mock.history.post).toHaveLength(2);
   });
 });
+
+describe('setPetLocation', () => {
+  it('sends POST with where=1 for inside', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPost('/pet/770878/position').reply(200, { data: {} });
+    await api.setPetLocation('770878', 1);
+    const call = mock.history.post.find(c => c.url === '/pet/770878/position');
+    expect(JSON.parse(call!.data).where).toBe(1);
+  });
+
+  it('sends POST with where=2 for outside', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPost('/pet/770878/position').reply(200, { data: {} });
+    await api.setPetLocation('770878', 2);
+    const call = mock.history.post.find(c => c.url === '/pet/770878/position');
+    expect(JSON.parse(call!.data).where).toBe(2);
+  });
+
+  it('sends Authorization header', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPost('/pet/770878/position').reply(200, { data: {} });
+    await api.setPetLocation('770878', 1);
+    const call = mock.history.post.find(c => c.url === '/pet/770878/position');
+    expect(call!.headers?.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('re-authenticates and retries on 401', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPost('/pet/770878/position').replyOnce(401).onPost('/pet/770878/position').reply(200, { data: {} });
+    await expect(api.setPetLocation('770878', 1)).resolves.toBeUndefined();
+    expect(mock.history.post.filter(c => c.url === '/auth/login')).toHaveLength(2);
+  });
+});
+
+describe('setLedMode', () => {
+  it('sends PUT with the led_mode value', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPut('/device/1/control').reply(200, { data: {} });
+    await api.setLedMode('1', 1);
+    const body = JSON.parse(mock.history.put[0].data);
+    expect(body.led_mode).toBe(1);
+  });
+
+  it('accepts off (0) and dimmed (4)', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPut('/device/1/control').reply(200, { data: {} });
+    await api.setLedMode('1', 0);
+    await api.setLedMode('1', 4);
+    expect(JSON.parse(mock.history.put[0].data).led_mode).toBe(0);
+    expect(JSON.parse(mock.history.put[1].data).led_mode).toBe(4);
+  });
+
+  it('sends Authorization header', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPut('/device/1/control').reply(200, { data: {} });
+    await api.setLedMode('1', 1);
+    expect(mock.history.put[0].headers?.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('re-authenticates and retries on 401', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onPut('/device/1/control').replyOnce(401).onPut('/device/1/control').reply(200, { data: {} });
+    await expect(api.setLedMode('1', 1)).resolves.toBeUndefined();
+    expect(mock.history.post).toHaveLength(2);
+  });
+});
