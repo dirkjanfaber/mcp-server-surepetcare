@@ -135,4 +135,27 @@ export class SurepetcareAPI implements SurepetcareBackend {
       });
     });
   }
+
+  async getPetReport(petId: string, fromDate?: string, toDate?: string): Promise<unknown> {
+    await this.authenticate();
+
+    // The report is scoped to a household rather than a pet directly, so
+    // resolve it the same way renameDevice resolves a device's prior lock
+    // state: from the account's own device list, rather than asking the
+    // caller for an ID they don't otherwise need.
+    const devices = await this.getDevices();
+    const householdId = devices[0]?.household_id;
+    if (householdId === undefined) {
+      throw new Error('Could not resolve a household ID (no devices found on this account)');
+    }
+
+    return this.withRetry(async () => {
+      const params: Record<string, string> = fromDate && toDate ? { from: fromDate, to: toDate } : {};
+      const response = await this.http.get(`/report/household/${householdId}/pet/${petId}/aggregate`, {
+        params,
+        headers: this.authHeaders(),
+      });
+      return response.data.data;
+    });
+  }
 }

@@ -12,6 +12,7 @@ function makeApi(overrides: Partial<SurepetcareBackend> = {}): SurepetcareBacken
     renameDevice: jest.fn().mockResolvedValue(undefined),
     setPetLocation: jest.fn().mockResolvedValue(undefined),
     setLedMode: jest.fn().mockResolvedValue(undefined),
+    getPetReport: jest.fn().mockResolvedValue({}),
     ...overrides,
   };
 }
@@ -128,6 +129,43 @@ describe('set_led_mode', () => {
   it('rejects a mode outside 0/1/4', async () => {
     const api = makeApi();
     await expect(handleToolCall('set_led_mode', { deviceId: '1', mode: 2 }, api)).rejects.toThrow();
+  });
+});
+
+describe('get_pet_report', () => {
+  it('calls getPetReport with just petId when no date range is given', async () => {
+    const api = makeApi();
+    await handleToolCall('get_pet_report', { petId: '5' }, api);
+    expect(api.getPetReport).toHaveBeenCalledWith('5', undefined, undefined);
+  });
+
+  it('calls getPetReport with the date range when both dates are given', async () => {
+    const api = makeApi();
+    await handleToolCall('get_pet_report', { petId: '5', fromDate: '2026-09-01', toDate: '2026-09-12' }, api);
+    expect(api.getPetReport).toHaveBeenCalledWith('5', '2026-09-01', '2026-09-12');
+  });
+
+  it('returns the report as JSON text', async () => {
+    const api = makeApi({ getPetReport: jest.fn().mockResolvedValue({ time_outside: 3600 }) });
+    const result = await handleToolCall('get_pet_report', { petId: '5' }, api);
+    expect(JSON.parse(textOf(result))).toEqual({ time_outside: 3600 });
+  });
+
+  it('rejects a fromDate without a matching toDate', async () => {
+    const api = makeApi();
+    await expect(handleToolCall('get_pet_report', { petId: '5', fromDate: '2026-09-01' }, api)).rejects.toThrow();
+  });
+
+  it('rejects a malformed date', async () => {
+    const api = makeApi();
+    await expect(
+      handleToolCall('get_pet_report', { petId: '5', fromDate: '09/01/2026', toDate: '2026-09-12' }, api)
+    ).rejects.toThrow();
+  });
+
+  it('rejects a missing petId', async () => {
+    const api = makeApi();
+    await expect(handleToolCall('get_pet_report', {}, api)).rejects.toThrow();
   });
 });
 

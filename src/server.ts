@@ -50,6 +50,18 @@ const SetLedModeArgs = z.object({
   mode: z.union([z.literal(0), z.literal(1), z.literal(4)]),
 });
 
+const DateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
+
+const GetPetReportArgs = z
+  .object({
+    petId: z.string().min(1, 'required'),
+    fromDate: DateStringSchema.optional(),
+    toDate: DateStringSchema.optional(),
+  })
+  .refine(data => (data.fromDate === undefined) === (data.toDate === undefined), {
+    message: 'fromDate and toDate must both be given, or neither',
+  });
+
 export const TOOLS = [
   {
     name: 'list_pets',
@@ -118,6 +130,19 @@ export const TOOLS = [
       required: ['deviceId', 'mode'],
     },
   },
+  {
+    name: 'get_pet_report',
+    description: "Get aggregated inside/outside activity stats for a pet over a date range - the same data backing the app's activity view. Omitting fromDate/toDate returns the API's default range; per the underlying report endpoint's own warning, an unbounded query can return a very large response, so prefer passing an explicit range.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        petId: { type: 'string', description: 'Numeric pet ID (from list_pets)' },
+        fromDate: { type: 'string', description: 'Start date, YYYY-MM-DD. Must be given together with toDate.' },
+        toDate: { type: 'string', description: 'End date, YYYY-MM-DD. Must be given together with fromDate.' },
+      },
+      required: ['petId'],
+    },
+  },
 ] as const;
 
 export async function handleToolCall(name: string, args: unknown, api: SurepetcareBackend) {
@@ -182,6 +207,12 @@ export async function handleToolCall(name: string, args: unknown, api: Surepetca
       const { deviceId, mode } = parseArgs(SetLedModeArgs, args);
       await api.setLedMode(deviceId, mode);
       return { content: [{ type: 'text' as const, text: `LED mode of device ${deviceId} set to ${mode}` }] };
+    }
+
+    case 'get_pet_report': {
+      const { petId, fromDate, toDate } = parseArgs(GetPetReportArgs, args);
+      const report = await api.getPetReport(petId, fromDate, toDate);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(report, null, 2) }] };
     }
 
     default:

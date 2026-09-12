@@ -255,6 +255,75 @@ describe('setPetLocation', () => {
   });
 });
 
+describe('getPetReport', () => {
+  const deviceFixture = {
+    data: [{ id: 10, name: 'Front Door', serial_number: 'SN001', product_id: 6, household_id: 347011 }],
+  };
+
+  it('resolves the household ID from getDevices and calls the aggregate report endpoint', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, deviceFixture);
+    mock.onGet('/report/household/347011/pet/770878/aggregate').reply(200, { data: { some: 'report' } });
+
+    const report = await api.getPetReport('770878');
+
+    expect(report).toEqual({ some: 'report' });
+  });
+
+  it('passes from/to as query params when both are given', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, deviceFixture);
+    mock.onGet('/report/household/347011/pet/770878/aggregate').reply(200, { data: {} });
+
+    await api.getPetReport('770878', '2026-09-01', '2026-09-12');
+
+    const call = mock.history.get.find(c => c.url === '/report/household/347011/pet/770878/aggregate');
+    expect(call!.params).toEqual({ from: '2026-09-01', to: '2026-09-12' });
+  });
+
+  it('omits from/to when not given', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, deviceFixture);
+    mock.onGet('/report/household/347011/pet/770878/aggregate').reply(200, { data: {} });
+
+    await api.getPetReport('770878');
+
+    const call = mock.history.get.find(c => c.url === '/report/household/347011/pet/770878/aggregate');
+    expect(call!.params).toEqual({});
+  });
+
+  it('throws when no devices (and so no household ID) can be found', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, { data: [] });
+
+    await expect(api.getPetReport('770878')).rejects.toThrow('household');
+  });
+
+  it('sends Authorization header', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, deviceFixture);
+    mock.onGet('/report/household/347011/pet/770878/aggregate').reply(200, { data: {} });
+
+    await api.getPetReport('770878');
+
+    const call = mock.history.get.find(c => c.url === '/report/household/347011/pet/770878/aggregate');
+    expect(call!.headers?.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('re-authenticates and retries on 401', async () => {
+    const api = new SurepetcareAPI(CREDS);
+    mock.onGet('/device').reply(200, deviceFixture);
+    mock
+      .onGet('/report/household/347011/pet/770878/aggregate')
+      .replyOnce(401)
+      .onGet('/report/household/347011/pet/770878/aggregate')
+      .reply(200, { data: {} });
+
+    await expect(api.getPetReport('770878')).resolves.toEqual({});
+    expect(mock.history.post.filter(c => c.url === '/auth/login')).toHaveLength(2);
+  });
+});
+
 describe('setLedMode', () => {
   it('sends PUT with the led_mode value', async () => {
     const api = new SurepetcareAPI(CREDS);

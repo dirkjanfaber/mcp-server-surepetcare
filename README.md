@@ -17,6 +17,7 @@ MCP (Model Context Protocol) server for the [SurePetcare](https://www.surepetcar
 | `rename_device` | Rename a device, re-asserting any explicit lock override so the rename can't silently unlock it |
 | `set_pet_location` | Manually mark a pet inside/outside (e.g. after letting them through a door other than the flap) |
 | `set_led_mode` | Set the hub's LED ring brightness (off/bright/dimmed) |
+| `get_pet_report` | Get aggregated inside/outside activity stats for a pet over a date range |
 
 ### Lock state values
 
