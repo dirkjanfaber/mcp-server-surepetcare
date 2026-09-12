@@ -1,11 +1,25 @@
 {
   "name": "mcp-server-surepetcare",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for the SurePetcare API (SureFlap, SureFeed)",
   "keywords": ["mcp", "surepetcare", "sureflap", "cat-flap", "pet"],
   "author": "Dirk-Jan Faber",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dirkjanfaber/mcp-server-surepetcare.git"
+  },
+  "homepage": "https://github.com/dirkjanfaber/mcp-server-surepetcare#readme",
+  "bugs": {
+    "url": "https://github.com/dirkjanfaber/mcp-server-surepetcare/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
   "bin": {
     "mcp-server-surepetcare": "dist/index.js"
   },
