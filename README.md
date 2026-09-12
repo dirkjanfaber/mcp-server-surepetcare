@@ -1,5 +1,7 @@
 # mcp-server-surepetcare
 
+[![CI](https://github.com/dirkjanfaber/mcp-server-surepetcare/actions/workflows/ci.yml/badge.svg)](https://github.com/dirkjanfaber/mcp-server-surepetcare/actions/workflows/ci.yml)
+
 MCP (Model Context Protocol) server for the [SurePetcare](https://www.surepetcare.com) cloud API. Exposes pet location monitoring, SureFlap lock control, device renaming, and hub LED control as MCP tools.
 
 > **Disclaimer:** This project is not affiliated with, endorsed by, or in any way associated with Sure Petcare Ltd. It is an independent, community-developed integration created by happy users of their hardware and software. SurePetcare, SureFlap, and SureFeed are trademarks of Sure Petcare Ltd. Use of this package is at your own risk. The underlying API is unofficial and reverse-engineered by the community - it may change or break without notice.
