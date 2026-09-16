@@ -96,11 +96,9 @@ export class SurepetcareAPI implements SurepetcareBackend {
     // PUT /device/{id} (unlike /device/{id}/control) has been observed to
     // reset the device's lock override to unlocked as a side effect of the
     // rename, even though locking isn't part of this request body. Capture
-    // whatever explicit override (0-3) was active beforehand and re-assert
-    // it once the rename completes, so a curfew-driven lock doesn't
-    // silently get dropped by an unrelated rename. Modes outside 0-3 mean
-    // the flap is governed by the app's own curfew schedule rather than an
-    // explicit override, so there's nothing to re-assert.
+    // whatever lock state was active beforehand and re-assert it once the
+    // rename completes, so a curfew-driven lock doesn't silently get
+    // dropped by an unrelated rename.
     const devices = await this.getDevices();
     const priorLockState = devices.find(d => String(d.id) === deviceId)?.status?.locking?.mode;
 
@@ -111,8 +109,17 @@ export class SurepetcareAPI implements SurepetcareBackend {
     });
 
     if (priorLockState !== undefined && priorLockState >= 0 && priorLockState <= 3) {
+      // Explicit override was active - restore the exact same value.
       await this.setLockState(deviceId, priorLockState as LockState);
+    } else if (priorLockState === -1) {
+      // Curfew's own one-way lock (exit blocked, entry allowed) is subject to
+      // the same reset - restore its explicit equivalent rather than trusting
+      // the app's curfew schedule to reassert it before a cat pushes through.
+      await this.setLockState(deviceId, 1);
     }
+    // -2 (curfew released), -3 (unknown), and 4 (curfew scheduled but not yet
+    // active) don't represent an active exit-blocking state, so there's
+    // nothing to restore.
   }
 
   async setPetLocation(petId: string, where: 1 | 2): Promise<void> {

@@ -184,16 +184,35 @@ describe('renameDevice', () => {
     expect(mock.history.put).toHaveLength(1);
   });
 
-  it("does not re-assert a lock state when the flap is governed by the app's own curfew schedule", async () => {
+  it('re-asserts a locked-in state when curfew is currently engaged (one-way lock)', async () => {
     const api = new SurepetcareAPI(CREDS);
     mock.onGet('/device').reply(200, {
       data: [{ id: 10, name: 'Front Door', serial_number: 'SN001', product_id: 6, household_id: 1, status: { locking: { mode: -1 } } }],
     });
     mock.onPut('/device/10').reply(200, { data: {} });
+    mock.onPut('/device/10/control').reply(200, { data: {} });
 
     await api.renameDevice('10', 'the Bifrost');
 
-    expect(mock.history.put).toHaveLength(1);
+    expect(mock.history.put).toHaveLength(2);
+    expect(mock.history.put[1].url).toBe('/device/10/control');
+    expect(JSON.parse(mock.history.put[1].data).locking).toBe(1);
+  });
+
+  it('does not re-assert a lock state when curfew is released, unknown, or merely scheduled', async () => {
+    for (const mode of [-2, -3, 4]) {
+      const api = new SurepetcareAPI(CREDS);
+      mock.reset();
+      mock.onPost('/auth/login').reply(200, { data: { token: TOKEN } });
+      mock.onGet('/device').reply(200, {
+        data: [{ id: 10, name: 'Front Door', serial_number: 'SN001', product_id: 6, household_id: 1, status: { locking: { mode } } }],
+      });
+      mock.onPut('/device/10').reply(200, { data: {} });
+
+      await api.renameDevice('10', 'the Bifrost');
+
+      expect(mock.history.put).toHaveLength(1);
+    }
   });
 
   it('re-authenticates and retries on 401', async () => {
