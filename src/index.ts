@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { SurepetcareAPI } from './lib/surepetcare-api.js';
 import { createServer } from './server.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const email = process.env.SUREPETCARE_EMAIL ?? '';
 const password = process.env.SUREPETCARE_PASSWORD ?? '';

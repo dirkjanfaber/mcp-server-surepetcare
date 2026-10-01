@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.dirkjanfaber/mcp-server-surepetcare",
+  "title": "SurePetcare",
+  "description": "Unofficial MCP server for SurePetcare devices: SureFlap pet/cat flaps and SureFeed feeders.",
+  "repository": {
+    "url": "https://github.com/dirkjanfaber/mcp-server-surepetcare",
+    "source": "github"
+  },
+  "version": "0.2.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-server-surepetcare",
+      "version": "0.2.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SUREPETCARE_EMAIL",
+          "description": "Email address of your SurePetcare account",
+          "isRequired": true,
+          "format": "string"
+        },
+        {
+          "name": "SUREPETCARE_PASSWORD",
+          "description": "Password of your SurePetcare account",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "SUREPETCARE_DEVICE_ID",
+          "description": "Stable UUID identifying this client; a random one is generated on each start if omitted",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
