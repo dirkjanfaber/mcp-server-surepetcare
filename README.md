@@ -116,9 +116,46 @@ volumes:
 ```
 
 With **Tailscale Funnel** (no domain needed), run `sudo tailscale funnel --bg 3200` and
-use the URL `tailscale funnel status` shows as `MCP_PUBLIC_URL`. Funnel serves on ports
-443, 8443 and 10000, so a second server on the same machine can take another port:
-`sudo tailscale funnel --bg --https=8443 3200` gives `https://<machine>.<tailnet>.ts.net:8443`.
+use the URL `tailscale funnel status` shows as `MCP_PUBLIC_URL`.
+
+claude.ai only connects on port 443, so Funnel's other ports (8443, 10000) don't work
+for a connector. If the machine's own name is already taken by another server, give
+this one its own tailnet machine with a Tailscale container next to it. Drop the
+`ports:` mapping above, set `MCP_PUBLIC_URL` to `https://surepet.<tailnet>.ts.net`, and add:
+
+```yaml
+  surepetcare-tailscale:
+    image: tailscale/tailscale:latest
+    hostname: surepet
+    restart: unless-stopped
+    environment:
+      TS_HOSTNAME: surepet
+      TS_AUTHKEY: ${TS_AUTHKEY}   # only used for the first login
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_USERSPACE: "true"
+    volumes:
+      - surepetcare-tailscale:/var/lib/tailscale
+      - ./surepet-ts:/config:ro
+```
+
+with `surepetcare-tailscale:` added under `volumes:`, and `surepet-ts/serve.json`:
+
+```json
+{
+  "TCP": { "443": { "HTTPS": true } },
+  "Web": {
+    "${TS_CERT_DOMAIN}:443": {
+      "Handlers": { "/": { "Proxy": "http://surepetcare-mcp:3000" } }
+    }
+  },
+  "AllowFunnel": { "${TS_CERT_DOMAIN}:443": true }
+}
+```
+
+Generate the auth key in the Tailscale admin console under **Settings → Keys**. Without
+one, the container prints a login link that expires after about a minute. Once logged
+in, the machine stays logged in through the volume and the key can be removed.
 
 With a **Cloudflare Tunnel** (needs a domain on Cloudflare), point a public hostname at
 the server instead. Don't put Cloudflare Access in front of it: claude.ai can't get
